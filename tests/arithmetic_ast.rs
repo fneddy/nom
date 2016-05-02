@@ -47,15 +47,15 @@ impl Debug for Expr {
     }
 }
 
-named!(parens< Expr >, delimited!(
+named!(parens< Box<Expr> >, delimited!(
     delimited!(opt!(multispace), tag!("("), opt!(multispace)),
-    map!(map!(expr, Box::new), Expr::Paren),
+    map!(map!(expr, Expr::Paren), Box::new),
     delimited!(opt!(multispace), tag!(")"), opt!(multispace))
   )
 );
 
-named!(factor< Expr >, alt_complete!(
-    map!(
+named!(factor< Box<Expr> >, alt_complete!(
+    map!(map!(
       map_res!(
         map_res!(
           delimited!(opt!(multispace), digit, opt!(multispace)),
@@ -63,29 +63,29 @@ named!(factor< Expr >, alt_complete!(
         ),
       FromStr::from_str
     ),
-    Expr::Value)
+    Expr::Value), Box::new)
   | parens
   )
 );
 
-named!(term< Expr >, chain!(
+named!(term< Box<Expr> >, chain!(
     mut acc: factor ~
              many0!(
                alt!(
-                 chain!(tag!("*") ~ mul: factor, ||{acc = Expr::Mul(Box::new(acc.clone()), Box::new(mul))}) |
-                 chain!(tag!("/") ~ div: factor, ||{acc = Expr::Div(Box::new(acc.clone()), Box::new(div))})
+                 chain!(tag!("*") ~ mul: factor, ||{acc = Box::new(Expr::Mul(acc.clone(), mul))}) |
+                 chain!(tag!("/") ~ div: factor, ||{acc = Box::new(Expr::Div(acc.clone(), div))})
                )
              ),
     || { return acc }
   )
 );
 
-named!(expr< Expr >, chain!(
+named!(expr< Box<Expr> >, chain!(
     mut acc: term ~
              many0!(
                alt!(
-                 chain!(tag!("+") ~ add: term, ||{acc = Expr::Add(Box::new(acc.clone()), Box::new(add))}) |
-                 chain!(tag!("-") ~ sub: term, ||{acc = Expr::Sub(Box::new(acc.clone()), Box::new(sub))})
+                 chain!(tag!("+") ~ add: term, ||{acc = Box::new(Expr::Add(acc.clone(), add))}) |
+                 chain!(tag!("-") ~ sub: term, ||{acc = Box::new(Expr::Sub(acc.clone(), sub))})
                )
              ),
     || { return acc }
